@@ -2,9 +2,8 @@ from openai import OpenAI
 from pydantic import BaseModel
 import instructor
 from typing import Optional, List
-import os
-import json
-from dotenv import load_dotenv
+
+from utils import *
 
 
 class Promotion(BaseModel):
@@ -25,34 +24,44 @@ class PromotionsList(BaseModel):
     promotions: List[Promotion]
 
 
-def load_prompt(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
-
-
 def get_json_from_text(ocr_content):
-    load_dotenv()
+    key = load_api_key("open_ai")
 
-    key = os.getenv("OPENAI_KEY")
+    client = instructor.from_openai(OpenAI(api_key=key))
 
-    client = instructor.from_openai(OpenAI(
-        api_key=key))
-
-    SYSTEM_PROMPT = load_prompt("prompts/system_prompt.txt")
+    system_prompt = load_prompt("ocr")
 
     response = client.chat.completions.create(
         model="gpt-5-mini",
         response_model=PromotionsList,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": ocr_content}
         ],
     )
 
-    with open("promotions.json", "w", encoding="utf-8") as file:
-        json.dump(
-            response.model_dump(),
-            file,
-            ensure_ascii=False,
-            indent=2
-        )
+    return response.model_dump()
+
+
+def get_json_from_image(image_base64):
+    key = load_api_key("open_ai")
+
+    client = instructor.from_openai(OpenAI(api_key=key))
+
+    system_prompt = load_prompt("image")
+
+    response = client.chat.completions.create(
+        model="gpt-5-mini",
+        response_model=PromotionsList,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{image_base64}"
+                }
+            }}
+        ],
+    )
+
+    return response.model_dump()

@@ -5,11 +5,11 @@ from google.cloud import vision
 from google.oauth2 import service_account
 import io
 
+from utils import *
+
 
 def get_text_from_image(image_path):
-    load_dotenv()
-    key_json = os.getenv("GOOGLE_CLOUD_KEY")
-    key_data = json.loads(key_json)
+    key_data = load_api_key("google")
 
     credentials = service_account.Credentials.from_service_account_info(key_data)
     client = vision.ImageAnnotatorClient(credentials=credentials)
