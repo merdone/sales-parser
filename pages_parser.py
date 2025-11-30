@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-def get_all_flyers(url = "https://www.biedronka.pl/pl/gazetki"):
+def get_all_flyers(url="https://www.biedronka.pl/pl/gazetki"):
     links = []
     r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
     soup = BeautifulSoup(r.text, "html.parser")
@@ -116,5 +116,16 @@ def get_pictures(url):
     return pics
 
 
-all_links = get_all_flyers()
-print(len(get_pictures(all_links[0])))
+def save_image(url: str, path: str):
+    resp = requests.get(url)
+    resp.raise_for_status()
+    with open(f"{path}.png", "wb") as f:
+        f.write(resp.content)
+
+
+def save_images_interface(link: str, name: str):
+    list_of_pictures = get_pictures(link)
+    for i in range(len(list_of_pictures)):
+        save_image(list_of_pictures[i], f"offer/{name}_{i}")
+
+save_images_interface(get_all_flyers()[3], "temp")

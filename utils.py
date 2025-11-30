@@ -1,6 +1,7 @@
 import os
 import base64
 import json
+from dotenv import load_dotenv
 
 OCR_PROMPT_PATH = "prompts/ocr_system_prompt.txt"
 IMAGE_PROMPT_PATH = "prompts/image_system_prompt.txt"
@@ -8,6 +9,8 @@ IMAGE_PROMPT_PATH = "prompts/image_system_prompt.txt"
 path_dict = {"ocr": OCR_PROMPT_PATH,
              "image": IMAGE_PROMPT_PATH}
 
+def convert_from_text_to_grams(weight_text: str) -> int:
+    return int(weight_text.split()[0])
 
 def load_prompt(type_of_prompt: str) -> str:
     if type_of_prompt in ["ocr", "image"]:
@@ -17,7 +20,19 @@ def load_prompt(type_of_prompt: str) -> str:
         return None
 
 
+def load_database():
+    load_dotenv()
+    return {
+        "host": os.getenv("host"),
+        "dbname": os.getenv("dbname"),
+        "user": os.getenv("user"),
+        "password": os.getenv("password"),
+        "port": os.getenv("port"),
+    }
+
+
 def load_api_key(type_of_key: str) -> str:
+    load_dotenv()
     if type_of_key == "google":
         key_json = os.getenv("GOOGLE_CLOUD_KEY")
         return json.loads(key_json)
@@ -38,8 +53,8 @@ def encode_image_to_base64(image_path: str) -> str:
         raise IOError(f"Mistake while reading image {image_path}: {e}")
 
 
-def write_to_file(content):
-    with open("promotions.json", "w", encoding="utf-8") as file:
+def write_to_file(content, name):
+    with open(f"{name}.json", "w", encoding="utf-8") as file:
         json.dump(
             content,
             file,

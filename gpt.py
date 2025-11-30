@@ -3,7 +3,8 @@ from pydantic import BaseModel
 import instructor
 from typing import Optional, List
 
-from utils import *
+from utils import load_api_key, load_prompt, encode_image_to_base64, write_to_file
+from text_parser import get_text_from_image, json_from_response
 
 
 class Promotion(BaseModel):
@@ -43,6 +44,14 @@ def get_json_from_text(ocr_content):
     return response.model_dump()
 
 
+def json_from_ocr_interface(image_path: str, name: str):
+    ocr_text = get_text_from_image(image_path)
+    json_response = json_from_response(ocr_text)
+    promotions = get_json_from_text(json_response)
+    write_to_file(promotions, name)
+    return promotions
+
+
 def get_json_from_image(image_base64):
     key = load_api_key("open_ai")
 
@@ -65,3 +74,10 @@ def get_json_from_image(image_base64):
     )
 
     return response.model_dump()
+
+
+def json_from_image_interface(image_path: str, name: str):
+    encode_image = encode_image_to_base64(image_path)
+    promotions = get_json_from_image(encode_image)
+    write_to_file(promotions, name)
+    return promotions
