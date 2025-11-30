@@ -1,6 +1,7 @@
 import os
 import base64
 import json
+import re
 from dotenv import load_dotenv
 
 OCR_PROMPT_PATH = "prompts/ocr_system_prompt.txt"
@@ -9,8 +10,25 @@ IMAGE_PROMPT_PATH = "prompts/image_system_prompt.txt"
 path_dict = {"ocr": OCR_PROMPT_PATH,
              "image": IMAGE_PROMPT_PATH}
 
-def convert_from_text_to_grams(weight_text: str) -> int:
-    return int(weight_text.split()[0])
+
+def convert_from_text_to_grams(weight_text: str) -> int | None:
+    if not weight_text:
+        return None
+
+    text = weight_text.lower().replace(',', '.').strip()
+
+    is_correct = re.match(r"(\d+(\.\d+)?)\s*g", text)
+    if is_correct:
+        return int(float(is_correct.group(1)))
+
+    is_correct = re.match(r"(\d+)\s*[x×]\s*(\d+(\.\d+)?)\s*g", text)
+    if is_correct:
+        count = int(is_correct.group(1))
+        unit = float(is_correct.group(2))
+        return int(count * unit)
+
+    return None
+
 
 def load_prompt(type_of_prompt: str) -> str:
     if type_of_prompt in ["ocr", "image"]:

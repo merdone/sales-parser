@@ -103,6 +103,7 @@ def add_to_table(json_name, conn):
                     chain_id
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (product_name, start_date, end_date, chain_id) DO NOTHING;
             """, (
                 product_name,
                 weight_text,
