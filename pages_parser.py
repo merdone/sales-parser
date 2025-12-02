@@ -127,5 +127,3 @@ def save_images_interface(link: str, name: str):
     list_of_pictures = get_pictures(link)
     for i in range(len(list_of_pictures)):
         save_image(list_of_pictures[i], f"offer/{name}_{i}")
-
-save_images_interface(get_all_flyers()[3], "temp")

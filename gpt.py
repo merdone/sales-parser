@@ -1,10 +1,13 @@
 from openai import OpenAI
+from openai import AsyncOpenAI
+
 from pydantic import BaseModel
 import instructor
 from typing import Optional, List
 
-from utils import load_api_key, load_prompt, encode_image_to_base64, write_to_file
-from text_parser import get_text_from_image, json_from_response
+from utils import timer, async_timer
+
+from utils import load_api_key, load_prompt, encode_image_to_base64, save_to_json
 
 
 class Promotion(BaseModel):
@@ -25,39 +28,13 @@ class PromotionsList(BaseModel):
     promotions: List[Promotion]
 
 
-def get_json_from_text(ocr_content):
-    key = load_api_key("open_ai")
+@timer
+def get_json_from_image(image_base64, system_prompt=None):
+    if system_prompt is None:
+        system_prompt = load_prompt()
+    key = load_api_key()
 
     client = instructor.from_openai(OpenAI(api_key=key))
-
-    system_prompt = load_prompt("ocr")
-
-    response = client.chat.completions.create(
-        model="gpt-5-mini",
-        response_model=PromotionsList,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": ocr_content}
-        ],
-    )
-
-    return response.model_dump()
-
-
-def json_from_ocr_interface(image_path: str, name: str):
-    ocr_text = get_text_from_image(image_path)
-    json_response = json_from_response(ocr_text)
-    promotions = get_json_from_text(json_response)
-    write_to_file(promotions, name)
-    return promotions
-
-
-def get_json_from_image(image_base64):
-    key = load_api_key("open_ai")
-
-    client = instructor.from_openai(OpenAI(api_key=key))
-
-    system_prompt = load_prompt("image")
 
     response = client.chat.completions.create(
         model="gpt-5-mini",
@@ -76,8 +53,46 @@ def get_json_from_image(image_base64):
     return response.model_dump()
 
 
-def json_from_image_interface(image_path: str, name: str):
+@timer
+def json_from_image_interface(image_path: str, name: str, prompt = None):
     encode_image = encode_image_to_base64(image_path)
-    promotions = get_json_from_image(encode_image)
-    write_to_file(promotions, name)
+    promotions = get_json_from_image(encode_image, prompt)
+    save_to_json(promotions, name)
+    return promotions
+
+
+@async_timer
+async def get_json_from_image_async(image_base64: str) -> dict:
+    key = load_api_key()
+
+    async_client = AsyncOpenAI(api_key=key)
+    client = instructor.from_openai(async_client)
+
+    system_prompt = load_prompt()
+
+    response = await client.chat.completions.create(
+        model="gpt-5-mini",
+        response_model=PromotionsList,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_base64}"
+                    }
+                },
+            },
+        ],
+    )
+
+    return response.model_dump()
+
+
+@async_timer
+async def json_from_image_interface_async(image_path: str, name: str):
+    encode_image = encode_image_to_base64(image_path)
+    promotions = await get_json_from_image_async(encode_image)
+    save_to_json(promotions, name)
     return promotions
