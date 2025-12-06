@@ -1,7 +1,7 @@
 from openai import OpenAI
 from openai import AsyncOpenAI
 
-from pydantic import BaseModel
+from pydantic import BaseModel, conint
 import instructor
 from typing import Optional, List
 
@@ -9,6 +9,9 @@ from utils import timer, async_timer
 
 from utils import load_api_key, load_prompt, encode_image_to_base64, save_to_json
 
+class MaskPoint(BaseModel):
+    x: conint(ge=0, le=100)
+    y: conint(ge=0, le=100)
 
 class Promotion(BaseModel):
     product_name: str
@@ -22,6 +25,7 @@ class Promotion(BaseModel):
     old_price_per_kg: Optional[float] = None
     promotion: str
     category: str
+    mask: List[MaskPoint]
 
 
 class PromotionsList(BaseModel):

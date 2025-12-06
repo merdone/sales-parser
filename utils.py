@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import base64
 import json
@@ -40,6 +41,28 @@ def async_timer(func):
     return wrapper
 
 
+def get_safe_filename(text: str, max_len: int = 50) -> str:
+    if not text:
+        return "product"
+    text = text.strip()
+    text = re.sub(r"\s+", "_", text)
+    text = re.sub(r"[^\w\-]", "_", text)
+    if len(text) > max_len:
+        text = text[:max_len]
+    return text or "product"
+
+
+def load_json(path, default=None):
+    path = Path(path)
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return default if default is not None else {}
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in {path}: {e}") from e
+
+
 def convert_from_text_to_grams(weight_text: str) -> int | None:
     if not weight_text:
         return None
@@ -63,7 +86,6 @@ def convert_from_text_to_grams(weight_text: str) -> int | None:
 @timer
 def load_prompt() -> str:
     with open(IMAGE_PROMPT_PATH, "r", encoding="utf-8") as file:
-        print("DfDSFSDFDSFSDS")
         return file.read()
 
 
