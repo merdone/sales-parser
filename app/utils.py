@@ -6,13 +6,6 @@ import re
 import time
 
 from functools import wraps
-from dotenv import load_dotenv
-
-OCR_PROMPT_PATH = "prompts/ocr_system_prompt.txt"
-IMAGE_PROMPT_PATH = "prompts/image_system_prompt.txt"
-
-path_dict = {"ocr": OCR_PROMPT_PATH,
-             "image": IMAGE_PROMPT_PATH}
 
 
 def timer(func):
@@ -80,29 +73,6 @@ def convert_from_text_to_grams(weight_text: str) -> int | None:
         return int(count * unit)
 
     return None
-
-
-# TODO: add logics for garant correct promppt for few stores
-@timer
-def load_prompt() -> str:
-    with open(IMAGE_PROMPT_PATH, "r", encoding="utf-8") as file:
-        return file.read()
-
-
-def load_database():
-    load_dotenv()
-    return {
-        "host": os.getenv("host"),
-        "dbname": os.getenv("dbname"),
-        "user": os.getenv("user"),
-        "password": os.getenv("password"),
-        "port": os.getenv("port"),
-    }
-
-
-def load_api_key() -> str:
-    load_dotenv()
-    return os.getenv("OPENAI_KEY")
 
 
 def encode_image_to_base64(image_path: str) -> str:

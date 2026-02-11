@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from utils import get_safe_filename, load_json
+from app.utils import get_safe_filename, load_json
 
 
 def mask_to_position_bbox(mask):
