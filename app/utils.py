@@ -1,9 +1,11 @@
 from pathlib import Path
+import hashlib
 import os
 import base64
 import json
 import re
 import time
+from unidecode import unidecode
 
 from functools import wraps
 
@@ -34,15 +36,43 @@ def async_timer(func):
     return wrapper
 
 
+def get_flyer_id(url: str) -> str:
+    hash_object = hashlib.md5(url.encode())
+    return hash_object.hexdigest()[:10]
+
+
+def setup_flyer_dirs(store_name: str, flyer_url: str) -> dict:
+    flyer_id = get_flyer_id(flyer_url)
+    base_dir = Path("data") / store_name / flyer_id
+
+    dirs = {
+        "root": base_dir,
+        "raw": base_dir / "raw",
+        "crops": base_dir / "crops",
+        "json": base_dir / "json"
+    }
+
+    dirs["raw"].mkdir(parents=True, exist_ok=True)
+    dirs["crops"].mkdir(parents=True, exist_ok=True)
+    dirs["json"].mkdir(parents=True, exist_ok=True)
+
+    return dirs
+
+
 def get_safe_filename(text: str, max_len: int = 50) -> str:
     if not text:
         return "product"
-    text = text.strip()
+
+    text = unidecode(text)
+    text = text.lower()
+
     text = re.sub(r"\s+", "_", text)
     text = re.sub(r"[^\w\-]", "_", text)
+    text = re.sub(r"_+", "_", text)
+
     if len(text) > max_len:
         text = text[:max_len]
-    return text or "product"
+    return text.strip("_") or "product"
 
 
 def load_json(path, default=None):
@@ -75,7 +105,7 @@ def convert_from_text_to_grams(weight_text: str) -> int | None:
     return None
 
 
-def encode_image_to_base64(image_path: str) -> str:
+def encode_image_to_base64(image_path: Path) -> str:
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"No image on path: {image_path}")
 
@@ -86,11 +116,17 @@ def encode_image_to_base64(image_path: str) -> str:
         raise IOError(f"Mistake while reading image {image_path}: {e}")
 
 
-def save_to_json(content, name):
-    with open(f"{name}.json", "w", encoding="utf-8") as file:
-        json.dump(
-            content,
-            file,
-            ensure_ascii=False,
-            indent=2
-        )
+def save_to_json(promotions, output_dir):
+    saved_files = []
+    for idx, promotion in enumerate(promotions):
+        filename = f"{idx:03d}.json"
+        full_path = output_dir / filename
+        with open(full_path, "w", encoding="utf-8") as file:
+            json.dump(
+                promotion,
+                file,
+                ensure_ascii=False,
+                indent=2
+            )
+        saved_files.append(full_path)
+    return saved_files
