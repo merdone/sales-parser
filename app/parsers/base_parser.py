@@ -11,6 +11,10 @@ class BaseParser(ABC):
     def get_pictures(self, url: str) -> list:
         pass
 
+    @abstractmethod
+    def get_basic_url(self) -> str:
+        pass
+
     @classmethod
     def save_image(cls, url: str, save_path: Path) -> None:
         resp = requests.get(url)

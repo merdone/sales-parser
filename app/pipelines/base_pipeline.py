@@ -31,7 +31,7 @@ class BasePipeline(ABC):
         except Exception as e:
             return None
 
-    async def process_flyer(self, link: str):
+    async def process_flyer(self, link: str) -> None:
         parser = self.get_parser()
 
         dirs = setup_flyer_dirs(self.get_store_name(), link)
@@ -58,7 +58,7 @@ class BasePipeline(ABC):
 
         json_paths = save_to_json(promotions_json, dirs["json"])
 
-    async def run(self):
+    async def run(self) -> None:
         links = self.get_parser().get_all_flyers()
         for link in links[:1]:  # тест
             await self.process_flyer(link)

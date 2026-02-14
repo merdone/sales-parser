@@ -7,8 +7,6 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = BASE_DIR / "prompts"
 
-biedronka_url = str(getenv("biedronka_url"))
-
 
 def load_prompt(prompt_name: str) -> str:
     prompt_path = PROMPTS_DIR / prompt_name

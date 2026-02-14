@@ -7,14 +7,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from app.parsers.base_parser import BaseParser
-from app.loader import biedronka_url
 
 class BiedronkaParser(BaseParser):
-    URL = biedronka_url
+    def get_basic_url(self):
+        return "https://www.biedronka.pl/pl/gazetki"
 
     def get_all_flyers(self) -> list:
         links = []
-        r = requests.get(self.URL, headers={"User-Agent": "Mozilla/5.0"})
+        r = requests.get(self.get_basic_url(), headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
         print()
         for element in soup.find_all("div", {"class": "slot"}):
