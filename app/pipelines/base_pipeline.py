@@ -8,10 +8,12 @@ from app.gpt import Extractor
 from app.parsers.base_parser import BaseParser
 from app.utils import encode_image_to_base64, setup_flyer_dirs, get_safe_filename, save_to_json
 
+from app.database import Database
 
 class BasePipeline(ABC):
-    def __init__(self, extractor: Extractor, concurrency: int = 5):
+    def __init__(self, extractor: Extractor, database: Database, concurrency: int = 5):
         self.extractor = extractor
+        self.database = database
         self.sem = asyncio.Semaphore(concurrency)
 
     @abstractmethod
@@ -55,8 +57,11 @@ class BasePipeline(ABC):
                 promo["source_image"] = str(images_paths[page_index])
 
             crop_products(images_paths[page_index], promotions_json[page_index]["promotions"])
+        print(f"DEBUG: 📊 Итого валидных страниц для БД: {len(promotions_json)}")
 
-        json_paths = save_to_json(promotions_json, dirs["json"])
+        self.database.save_promotions_bulk(promotions_json, self.get_store_name())
+        self.database.update_promotion_statuses()
+        save_to_json(promotions_json, dirs["json"])
 
     async def run(self) -> None:
         links = self.get_parser().get_all_flyers()
