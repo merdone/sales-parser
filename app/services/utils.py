@@ -116,7 +116,7 @@ def encode_image_to_base64(image_path: Path) -> str:
         raise IOError(f"Mistake while reading image {image_path}: {e}")
 
 
-def save_to_json(promotions, output_dir):
+def save_to_json(promotions, output_dir) -> list:
     saved_files = []
     for idx, promotion in enumerate(promotions):
         filename = f"{idx:03d}.json"
@@ -130,3 +130,6 @@ def save_to_json(promotions, output_dir):
             )
         saved_files.append(full_path)
     return saved_files
+
+def clean_path(old_path: str) -> str:
+    return old_path.replace("\\", "/").split("data/")[-1]

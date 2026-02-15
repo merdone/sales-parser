@@ -1,7 +1,7 @@
 import psycopg2
 import json
 
-from app.utils import convert_from_text_to_grams
+from app.services.utils import convert_from_text_to_grams
 
 from app.loader import load_database
 
@@ -253,6 +253,82 @@ class Database:
                         cur.execute("ROLLBACK TO SAVEPOINT sp_promo")
 
         self.connection.commit()
+
+    def get_all_promotions(self, limit: int = 100) -> list[dict]:
+        with self.connection.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    p.product_name,
+                    p.new_price,
+                    p.old_price,
+                    p.new_price_per_kg,
+                    
+                    c.name as category_name,
+                    
+                    p.start_date,
+                    p.end_date,
+                    
+                    p.image_path,
+                    p.source_image_path,
+                    p.coordinates,
+                    
+                    pt.code as promotion_code
+                    
+                FROM promotions p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN promotion_types pt ON p.promotion_type_id = pt.id
+                WHERE p.end_date >= CURRENT_DATE
+                ORDER BY p.start_date DESC
+                LIMIT %s;
+            """, (limit, ))
+
+            rows = cur.fetchall()
+
+            results = []
+            col_names = [desc[0] for desc in cur.description]
+
+            for row in rows:
+                results.append(dict(zip(col_names, row)))
+
+        return results
+
+    def get_all_promotions_by_category(self, category: str, limit: int = 100) -> list[dict]:
+        with self.connection.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    p.product_name,
+                    p.new_price,
+                    p.old_price,
+                    p.new_price_per_kg,
+
+                    c.name as category_name,
+
+                    p.start_date,
+                    p.end_date,
+
+                    p.image_path,
+                    p.source_image_path,
+                    p.coordinates,
+
+                    pt.code as promotion_code
+
+                FROM promotions p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN promotion_types pt ON p.promotion_type_id = pt.id
+                WHERE p.end_date >= CURRENT_DATE AND c.name = %s
+                ORDER BY p.start_date DESC
+                LIMIT %s;
+            """, (category, limit, ))
+
+            rows = cur.fetchall()
+
+            results = []
+            col_names = [desc[0] for desc in cur.description]
+
+            for row in rows:
+                results.append(dict(zip(col_names, row)))
+
+        return results
 
     def close(self):
         if self.connection:

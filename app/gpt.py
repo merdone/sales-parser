@@ -4,9 +4,9 @@ from pydantic import BaseModel, conint
 import instructor
 from typing import Optional, List
 
-from app.utils import async_timer
+from app.services.utils import async_timer
 from app.loader import load_api_key, load_prompt
-from app.utils import encode_image_to_base64, save_to_json
+from app.services.utils import encode_image_to_base64, save_to_json
 
 from typing import Dict
 

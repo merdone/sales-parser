@@ -3,10 +3,10 @@ import asyncio
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from app.crop_image import crop_products
+from app.services.image_processing import crop_products
 from app.gpt import Extractor
 from app.parsers.base_parser import BaseParser
-from app.utils import encode_image_to_base64, setup_flyer_dirs, get_safe_filename, save_to_json
+from app.services.utils import encode_image_to_base64, setup_flyer_dirs, get_safe_filename, save_to_json
 
 from app.database import Database
 
@@ -41,7 +41,7 @@ class BasePipeline(ABC):
         images_paths = parser.download_flyer(link, dirs["raw"])
         tasks = []
 
-        for image_path in images_paths[:2]:  # 2 для теста
+        for image_path in images_paths[:]:  # 2 для теста
             task = self._process_single_image(image_path)
             tasks.append(task)
 
@@ -57,7 +57,6 @@ class BasePipeline(ABC):
                 promo["source_image"] = str(images_paths[page_index])
 
             crop_products(images_paths[page_index], promotions_json[page_index]["promotions"])
-        print(f"DEBUG: 📊 Итого валидных страниц для БД: {len(promotions_json)}")
 
         self.database.save_promotions_bulk(promotions_json, self.get_store_name())
         self.database.update_promotion_statuses()
