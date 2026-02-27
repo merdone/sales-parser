@@ -21,7 +21,7 @@ This project leverages **Selenium** for scraping dynamic web content, **OpenAI (
 ## ⚙️ Installation
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/your-username/sales-parser.git](https://github.com/your-username/sales-parser.git)
+   git clone https://github.com/merdone/sales-parser
    cd sales-parser
     ```
     
