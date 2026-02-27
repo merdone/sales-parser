@@ -5,7 +5,7 @@ from app.pipelines.biedronka_pipeline import BiedronkaPipeLine
 
 from app.database import Database
 
-#TODO 1) loging 2) Poetry (pyproject.toml) 3) Scheduler 4) FrontEnd -> React 5) docker 6) readme.md 7) server
+#TODO 1) loging 3) Scheduler 4) FrontEnd -> React 5) docker 7) server
 
 async def main():
     db = Database()
