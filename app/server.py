@@ -26,6 +26,13 @@ data_dir = os.path.join(root_dir, "data")
 async def serve_root():
     return FileResponse(os.path.join(static_dir, "index.html"))
 
+@app.get("/style.css")
+async def serve_css():
+    return FileResponse(os.path.join(static_dir, "style.css"))
+
+@app.get("/script.js")
+async def serve_js():
+    return FileResponse(os.path.join(static_dir, "script.js"))
 
 @app.get("/static/index.html")
 async def serve_index_explicit():

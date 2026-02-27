@@ -1,6 +1,7 @@
 from os import getenv
 from dotenv import load_dotenv
 from pathlib import Path
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -18,12 +19,18 @@ def load_prompt(prompt_name: str) -> str:
 def load_api_key() -> str:
     return getenv("OPENAI_KEY")
 
+class DataBaseConfig(BaseModel):
+    host: str
+    dbname: str
+    user: str
+    password: str
+    port: int
 
-def load_database() -> dict:
-    return {
-        "host": getenv("host"),
-        "dbname": getenv("dbname"),
-        "user": getenv("user"),
-        "password": getenv("password"),
-        "port": getenv("port"),
-    }
+def load_database() -> DataBaseConfig:
+    return DataBaseConfig(
+        host = getenv("host"),
+        dbname = getenv("dbname"),
+        user = getenv("user"),
+        password = getenv("password"),
+        port = int(getenv("port")),
+    )

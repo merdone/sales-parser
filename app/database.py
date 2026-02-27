@@ -10,11 +10,11 @@ class Database:
     def __init__(self) -> None:
         cfg = load_database()
         self.connection = psycopg2.connect(
-            host=cfg["host"],
-            dbname=cfg["dbname"],
-            user=cfg["user"],
-            password=cfg["password"],
-            port=cfg["port"]
+            host=cfg.host,
+            dbname=cfg.dbname,
+            user=cfg.user,
+            password=cfg.password,
+            port=cfg.port
         )
         self.create_tables()
 
