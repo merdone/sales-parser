@@ -12,7 +12,7 @@ This project leverages **Selenium** for scraping dynamic web content, **OpenAI (
 
 ## 🛠️ Tech Stack
 * **Language:** Python >= 3.13
-* **Package Manager:** [uv](https://github.com/astral-sh/uv)
+* **Package Manager:** uv
 * **Web Scraping:** Selenium, Requests
 * **AI & Data Validation:** OpenAI API, Instructor, Pydantic
 * **Database:** PostgreSQL (psycopg2)

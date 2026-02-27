@@ -187,71 +187,73 @@ class Database:
 
         with self.connection.cursor() as cur:
             for page in pages_data:
-                for promo in page.get("promotions", []):
-                    try:
-                        cur.execute("SAVEPOINT sp_promo")
-                        product_name = promo.get("product_name")
-                        weight_text = promo.get("weight")
-                        weight_grams = convert_from_text_to_grams(promo.get("weight"))
-                        start_date = promo.get("start_date")
-                        end_date = promo.get("end_date")
-                        new_price = promo.get("new_price")
-                        old_price = promo.get("old_price")
-                        new_price_per_kg = promo.get("new_price_per_kg")
-                        old_price_per_kg = promo.get("old_price_per_kg")
-                        promotion_label_raw = promo.get("promotion")
-                        category_raw = promo.get("category")
-                        coordinates_json = json.dumps(promo.get("mask", []))
-                        crop_path = promo.get("crop_path")
-                        source_image = promo.get("source_image")
+                try:
+                    for promo in page.get("promotions", []):
+                        try:
+                            cur.execute("SAVEPOINT sp_promo")
+                            product_name = promo.get("product_name")
+                            weight_text = promo.get("weight")
+                            weight_grams = convert_from_text_to_grams(promo.get("weight"))
+                            start_date = promo.get("start_date")
+                            end_date = promo.get("end_date")
+                            new_price = promo.get("new_price")
+                            old_price = promo.get("old_price")
+                            new_price_per_kg = promo.get("new_price_per_kg")
+                            old_price_per_kg = promo.get("old_price_per_kg")
+                            promotion_label_raw = promo.get("promotion")
+                            category_raw = promo.get("category")
+                            coordinates_json = json.dumps(promo.get("mask", []))
+                            crop_path = promo.get("crop_path")
+                            source_image = promo.get("source_image")
 
-                        promotion_type_id = self.get_or_create_promotion_type_id(promotion_label_raw)
-                        category_id = self.get_or_create_category_id(category_raw)
+                            promotion_type_id = self.get_or_create_promotion_type_id(promotion_label_raw)
+                            category_id = self.get_or_create_category_id(category_raw)
 
-                        cur.execute("""
-                            INSERT INTO promotions (
-                                product_name,
-                                weight_text,
-                                weight_grams,
-                                start_date,
-                                end_date,
-                                new_price,
-                                old_price,
-                                new_price_per_kg,
-                                old_price_per_kg,
-                                promotion_type_id,
-                                promotion_label_raw,
-                                category_id,
-                                chain_id,
-                                coordinates,
-                                image_path,
-                                source_image_path
+                            cur.execute("""
+                                INSERT INTO promotions (
+                                    product_name,
+                                    weight_text,
+                                    weight_grams,
+                                    start_date,
+                                    end_date,
+                                    new_price,
+                                    old_price,
+                                    new_price_per_kg,
+                                    old_price_per_kg,
+                                    promotion_type_id,
+                                    promotion_label_raw,
+                                    category_id,
+                                    chain_id,
+                                    coordinates,
+                                    image_path,
+                                    source_image_path
+                                )
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                ON CONFLICT (product_name, start_date, end_date, chain_id) DO NOTHING;
+                                """, (
+                                    product_name,
+                                    weight_text,
+                                    weight_grams,
+                                    start_date,
+                                    end_date,
+                                    new_price,
+                                    old_price,
+                                    new_price_per_kg,
+                                    old_price_per_kg,
+                                    promotion_type_id,
+                                    promotion_label_raw,
+                                    category_id,
+                                    chain_id,
+                                    coordinates_json,
+                                    crop_path,
+                                    source_image
+                                )
                             )
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            ON CONFLICT (product_name, start_date, end_date, chain_id) DO NOTHING;
-                            """, (
-                                product_name,
-                                weight_text,
-                                weight_grams,
-                                start_date,
-                                end_date,
-                                new_price,
-                                old_price,
-                                new_price_per_kg,
-                                old_price_per_kg,
-                                promotion_type_id,
-                                promotion_label_raw,
-                                category_id,
-                                chain_id,
-                                coordinates_json,
-                                crop_path,
-                                source_image
-                            )
-                        )
-                        cur.execute("RELEASE SAVEPOINT sp_promo")
-                    except Exception as e:
-                        cur.execute("ROLLBACK TO SAVEPOINT sp_promo")
-
+                            cur.execute("RELEASE SAVEPOINT sp_promo")
+                        except Exception as e:
+                            cur.execute("ROLLBACK TO SAVEPOINT sp_promo")
+                except Exception as e:
+                    pass
         self.connection.commit()
 
     def get_all_promotions(self, limit: int = 100) -> list[dict]:

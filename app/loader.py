@@ -15,9 +15,13 @@ def load_prompt(prompt_name: str) -> str:
         raise FileNotFoundError(f"Prompt file not found at: {prompt_path}")
     return prompt_path.read_text(encoding="utf-8")
 
+class APIKey(BaseModel):
+    openai_key: str
 
-def load_api_key() -> str:
-    return getenv("OPENAI_KEY")
+def load_api_key() -> APIKey:
+    return APIKey(
+        openai_key=getenv("OPENAI_KEY")
+    )
 
 class DataBaseConfig(BaseModel):
     host: str

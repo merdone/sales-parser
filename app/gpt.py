@@ -37,7 +37,7 @@ class PromotionsList(BaseModel):
 
 class Extractor:
     def __init__(self, model_name: str = "gpt-5-mini"):
-        self.api_key = load_api_key()
+        self.api_key = load_api_key().openai_key
         self.model_name = model_name
         self.async_client = AsyncOpenAI(api_key=self.api_key)
         self.client = instructor.from_openai(self.async_client)

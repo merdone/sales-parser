@@ -16,15 +16,13 @@ class BiedronkaParser(BaseParser):
         links = []
         r = requests.get(self.get_basic_url(), headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
-        print()
         for element in soup.find_all("div", {"class": "slot"}):
             link = element.find("a", {"class": "page-slot-columns"}).get("href")
             if all(word not in link for word in ("home", "zakupy", "piwniczka", "book", "strona-gazetki")):
                 links.append(link)
         return links
 
-
-    def get_pictures(self, url: str) -> None:
+    def get_pictures(self, url: str) -> list:
         driver = webdriver.Firefox()
         driver.get(url)
         wait = WebDriverWait(driver, 20)
