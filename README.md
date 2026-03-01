@@ -65,6 +65,24 @@ To start the FastAPI server and access the data via REST endpoints:
 ```bash
 uv run fastapi dev app/server.py
 ```
+The API will be available at `http://localhost:8000`
+
+### Running the React Frontend
+
+To start the modern React frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The frontend will be available at `http://localhost:5173`
+
+For production build:
+```bash
+npm run build
+npm run preview
+```
 
 ## 📂 Project Structure
 * `app/parsers/` - Scraping logic for specific stores (e.g., `biedronka_parser.py`).
@@ -74,3 +92,19 @@ uv run fastapi dev app/server.py
 * `app/gpt.py` - AI integration using Instructor and OpenAI.
 * `app/server.py` - FastAPI application configuration and routes.
 * `main.py` - CLI entry point for running the parsers.
+* `frontend/` - Modern React + Vite frontend application
+  * `src/components/` - Reusable React components
+  * `src/hooks/` - Custom React hooks for cart and products management
+
+## 🎨 Frontend Features
+
+The new React frontend includes:
+- ✅ Responsive product grid with lazy loading
+- ✅ Category filtering with dropdown menu
+- ✅ Product sorting by price and name
+- ✅ Shopping cart with localStorage persistence
+- ✅ Beautiful, modern UI with CSS styling
+- ✅ Hot module reloading for development
+- ✅ Optimized production build with Vite
+
+See [frontend/README.md](frontend/README.md) for detailed frontend documentation.
