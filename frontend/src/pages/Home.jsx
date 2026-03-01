@@ -33,6 +33,7 @@ export default function Home({ onAddToCart }) {
     const [selectedStore, setSelectedStore] = useState('all');
     const [selectedPromotion, setSelectedPromotion] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeDropdown, setActiveDropdown] = useState(null);
     const [storeOptions, setStoreOptions] = useState([{ value: 'all', label: STORE_LABELS.all }]);
     const [promotionOptions, setPromotionOptions] = useState([{ value: 'all', label: PROMOTION_LABELS.all }]);
     const { products, loading, error, loadProducts, sortProducts } = useProducts();
@@ -106,16 +107,22 @@ export default function Home({ onAddToCart }) {
                     categories={CATEGORIES}
                     selectedCategory={selectedCategory}
                     onCategoryChange={setSelectedCategory}
+                    isOpen={activeDropdown === 'category'}
+                    onToggle={(nextOpen) => setActiveDropdown(nextOpen ? 'category' : null)}
                 />
                 <CategoryDropdown
                     categories={storeOptions}
                     selectedCategory={selectedStore}
                     onCategoryChange={setSelectedStore}
+                    isOpen={activeDropdown === 'store'}
+                    onToggle={(nextOpen) => setActiveDropdown(nextOpen ? 'store' : null)}
                 />
                 <CategoryDropdown
                     categories={promotionOptions}
                     selectedCategory={selectedPromotion}
                     onCategoryChange={setSelectedPromotion}
+                    isOpen={activeDropdown === 'promotion'}
+                    onToggle={(nextOpen) => setActiveDropdown(nextOpen ? 'promotion' : null)}
                 />
                 <input
                     className="search-input"

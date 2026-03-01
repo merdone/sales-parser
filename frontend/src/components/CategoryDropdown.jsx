@@ -1,23 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import './CategoryDropdown.css';
 
-export default function CategoryDropdown({ categories, selectedCategory, onCategoryChange }) {
-    const [isOpen, setIsOpen] = useState(false);
-
+export default function CategoryDropdown({ categories, selectedCategory, onCategoryChange, isOpen, onToggle }) {
     const selectedLabel = useMemo(() => {
         return categories.find((cat) => cat.value === selectedCategory)?.label ?? 'All';
     }, [categories, selectedCategory]);
 
     const handleCategorySelect = (category) => {
         onCategoryChange(category.value);
-        setIsOpen(false);
+        if (onToggle) {
+            onToggle(false);
+        }
     };
 
     return (
         <div className="dropdown">
             <button
                 className="dropbtn"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => onToggle && onToggle(!isOpen)}
             >
                 {selectedLabel} ▼
             </button>
