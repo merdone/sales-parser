@@ -1,0 +1,23 @@
+.sorting-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.sort-btn {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 8px 14px;
+    cursor: pointer;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    transition: all 0.2s ease;
+}
+
+.sort-btn:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5f5;
+}
