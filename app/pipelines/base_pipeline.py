@@ -1,4 +1,6 @@
 import asyncio
+import json
+import os
 
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -11,9 +13,11 @@ from app.services.utils import encode_image_to_base64, setup_flyer_dirs, get_saf
 from app.database import Database
 
 class BasePipeline(ABC):
-    def __init__(self, extractor: Extractor, database: Database, concurrency: int = 5):
+    def __init__(self, extractor: Extractor, database: Database, link_limit: int = None, page_limit: int = None, concurrency: int = 5):
         self.extractor = extractor
         self.database = database
+        self.link_limit = link_limit
+        self.page_limit = page_limit
         self.sem = asyncio.Semaphore(concurrency)
 
     @abstractmethod
@@ -33,11 +37,51 @@ class BasePipeline(ABC):
         except Exception as e:
             return None
 
-    async def save_flayer(self, link: str) -> list[Path]:
+    async def save_flayer_pictures(self, link: str) -> list[Path]:
         parser = self._get_parser()
         dirs = setup_flyer_dirs(self._get_store_name(), link)
         images_paths = parser.download_flyer(link, dirs["raw"])
         return images_paths
+
+    async def get_flayer_images_paths(self, link: str) -> list[Path]:
+        images_paths = []
+        basic_dir = setup_flyer_dirs(self._get_store_name(), link)["raw"]
+        for picture in os.listdir(basic_dir):
+            picture_path = basic_dir / picture
+            images_paths.append(picture_path)
+        return images_paths
+
+    async def process_flayer_by_paths(self, link: str) -> list[Path]:
+        tasks = []
+        images_paths = await self.get_flayer_images_paths(link)
+        basic_dir = setup_flyer_dirs(self._get_store_name(), link)["json"]
+        for image_path in images_paths[:self.page_limit]:
+            task = self._process_single_image(image_path)
+            tasks.append(task)
+        promotions_json = await asyncio.gather(*tasks)
+        jsons_paths = save_to_json(promotions_json, basic_dir)
+        return jsons_paths
+
+    async def get_flayer_json_paths(self, link: str) -> list[Path]:
+        json_paths = []
+        basic_dir = setup_flyer_dirs(self._get_store_name(), link)["json"]
+        for json_file in os.listdir(basic_dir):
+            json_dir = basic_dir / json_file
+            json_paths.append(json_dir)
+        return json_paths
+
+    async def update_database_by_paths(self, json_paths: list[Path]) -> None:
+        promotions = []
+        for json_file in json_paths:
+            with open(json_file) as data:
+                promotion = json.load(data)
+                promotions.append(promotion)
+        self.database.save_promotions_bulk(promotions, self._get_store_name())
+        self.database.update_promotion_statuses()
+
+    async def update_database_by_link(self, link: str) -> None:
+        json_paths = await self.get_flayer_json_paths(link)
+        await self.update_database_by_paths(json_paths)
 
     async def process_flyer(self, link: str) -> None:
         parser = self._get_parser()
@@ -47,7 +91,7 @@ class BasePipeline(ABC):
         images_paths = parser.download_flyer(link, dirs["raw"])
         tasks = []
 
-        for image_path in images_paths[:]:  # 2 для
+        for image_path in images_paths[:self.page_limit]:
             task = self._process_single_image(image_path)
             tasks.append(task)
 
@@ -70,9 +114,9 @@ class BasePipeline(ABC):
 
         self.database.save_promotions_bulk(promotions_json, self._get_store_name())
         self.database.update_promotion_statuses()
-        save_to_json(promotions_json, dirs["json"])
+        jsons_paths = save_to_json(promotions_json, dirs["json"])
 
     async def run(self) -> None:
         links = self._get_parser().get_all_flyers()
-        for link in links[:1]:  # тест
+        for link in links[:self.link_limit]:
             await self.process_flyer(link)
