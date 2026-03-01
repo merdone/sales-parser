@@ -1,6 +1,8 @@
 import psycopg2
 import json
 
+from idna import check_bidi
+
 from app.services.utils import convert_from_text_to_grams
 
 from app.loader import load_database
@@ -16,9 +18,9 @@ class Database:
             password=cfg.password,
             port=cfg.port
         )
-        self.create_tables()
+        self.__create_tables()
 
-    def create_tables(self) -> None:
+    def __create_tables(self) -> None:
         with self.connection.cursor() as cur:
             cur.execute("""
             CREATE TABLE IF NOT EXISTS chains (
@@ -63,6 +65,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS promotions (
                 id SERIAL PRIMARY KEY,
                 chain_id INT REFERENCES chains(id),
+                chain_name VARCHAR(50),
                 category_id INT REFERENCES categories(id),
                 promotion_type_id INT REFERENCES promotion_types(id),
                 
@@ -93,7 +96,7 @@ class Database:
             """)
         self.connection.commit()
 
-    def get_chain_id(self, chain_name: str) -> int:
+    def __get_chain_id(self, chain_name: str) -> int:
         if not chain_name:
             raise ValueError("Chain name cannot be empty")
 
@@ -106,7 +109,7 @@ class Database:
             else:
                 raise ValueError(f"Shop '{chain_name}' is not found in database")
 
-    def get_or_create_promotion_type_id(self, raw_label: str | None) -> int:
+    def __get_or_create_promotion_type_id(self, raw_label: str | None) -> int:
         if not raw_label or not raw_label.strip():
             return None
         raw_label = raw_label.strip()
@@ -130,14 +133,13 @@ class Database:
             )
             promotion_type_new_id = cur.fetchone()[0]
 
-            # self.connection.commit()
             return promotion_type_new_id
 
-    def get_or_create_category_id(self, category_name: str | None) -> int:
+    def __get_category_id(self, category_name: str | None) -> int:
         if not category_name:
             category_name = "inne"
-
-        category_name = category_name.lower().strip().strip(".")
+        else:
+            category_name = category_name.lower().strip().strip(".")
 
         with self.connection.cursor() as cur:
             cur.execute(
@@ -148,14 +150,10 @@ class Database:
             if category_id:
                 return category_id[0]
 
-            cur.execute(
-                "INSERT INTO categories (name) VALUES (%s) RETURNING id",
-                (category_name,)
-            )
-            new_category_id = cur.fetchone()[0]
+            cur.execute("SELECT id FROM categories WHERE name = 'inne'")
+            inne_category_id = cur.fetchone()[0]
 
-            # self.connection.commit()
-            return new_category_id
+            return inne_category_id
 
     def update_promotion_statuses(self) -> None:
         with self.connection.cursor() as cur:
@@ -182,9 +180,8 @@ class Database:
             """)
         self.connection.commit()
 
-    def save_promotions_bulk(self, pages_data: list[dict], store_name: str) -> None:
-        chain_id = self.get_chain_id(store_name)
-
+    def save_promotions_bulk(self, pages_data: list[dict], chain_name: str) -> None:
+        chain_id = self.__get_chain_id(chain_name)
         with self.connection.cursor() as cur:
             for page in pages_data:
                 try:
@@ -206,8 +203,8 @@ class Database:
                             crop_path = promo.get("crop_path")
                             source_image = promo.get("source_image")
 
-                            promotion_type_id = self.get_or_create_promotion_type_id(promotion_label_raw)
-                            category_id = self.get_or_create_category_id(category_raw)
+                            promotion_type_id = self.__get_or_create_promotion_type_id(promotion_label_raw)
+                            category_id = self.__get_category_id(category_raw)
 
                             cur.execute("""
                                 INSERT INTO promotions (
@@ -224,11 +221,12 @@ class Database:
                                     promotion_label_raw,
                                     category_id,
                                     chain_id,
+                                    chain_name,
                                     coordinates,
                                     image_path,
                                     source_image_path
                                 )
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 ON CONFLICT (product_name, start_date, end_date, chain_id) DO NOTHING;
                                 """, (
                                     product_name,
@@ -244,6 +242,7 @@ class Database:
                                     promotion_label_raw,
                                     category_id,
                                     chain_id,
+                                    chain_name,
                                     coordinates_json,
                                     crop_path,
                                     source_image
@@ -256,7 +255,7 @@ class Database:
                     pass
         self.connection.commit()
 
-    def get_all_promotions(self, limit: int = 100) -> list[dict]:
+    def get_all_promotions(self, limit: int = 1000) -> list[dict]:
         with self.connection.cursor() as cur:
             cur.execute("""
                 SELECT 
@@ -273,6 +272,9 @@ class Database:
                     p.image_path,
                     p.source_image_path,
                     p.coordinates,
+
+                    p.chain_name,
+                    p.promotion_label_raw as promotion_name,
                     
                     pt.code as promotion_code
                     
@@ -294,43 +296,81 @@ class Database:
 
         return results
 
-    def get_all_promotions_by_category(self, category: str, limit: int = 100) -> list[dict]:
+    def get_unique_active_chains(self):
         with self.connection.cursor() as cur:
             cur.execute("""
+                SELECT DISTINCT chain_name
+                FROM promotions
+                WHERE chain_name IS NOT NULL AND status != 'expired'
+                ORDER BY chain_name;
+            """)
+            result = []
+            rows = cur.fetchall()
+            for row in rows:
+                result.append(row[0])
+        return result
+
+    def get_unique_active_promotions_names(self):
+        with self.connection.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT promotion_label_raw
+                FROM promotions
+                WHERE promotion_label_raw IS NOT NULL AND status != 'expired'
+                ORDER BY promotion_label_raw;
+            """)
+            result = []
+            rows = cur.fetchall()
+            for row in rows:
+                result.append(row[0])
+        return result
+
+    def get_promotions_filtered(self, category: str | None = None, store: str | None = None, promotion: str | None = None, limit: int = 1000):
+        query = """
                 SELECT 
                     p.product_name,
                     p.new_price,
                     p.old_price,
                     p.new_price_per_kg,
-
                     c.name as category_name,
-
                     p.start_date,
                     p.end_date,
-
                     p.image_path,
                     p.source_image_path,
                     p.coordinates,
-
+                    p.chain_name,
+                    p.promotion_label_raw as promotion_name,
                     pt.code as promotion_code
-
                 FROM promotions p
                 LEFT JOIN categories c ON p.category_id = c.id
                 LEFT JOIN promotion_types pt ON p.promotion_type_id = pt.id
-                WHERE p.end_date >= CURRENT_DATE AND c.name = %s
-                ORDER BY p.start_date DESC
-                LIMIT %s;
-            """, (category, limit, ))
+                WHERE p.end_date >= CURRENT_DATE
+            """
+        params = []
+        if category and category.lower() != "wszystko":
+            query += " AND c.name = %s"
+            params.append(category)
 
-            rows = cur.fetchall()
+        if store and store.lower() != "all":
+            query += " AND p.chain_name = %s"
+            params.append(store)
 
-            results = []
-            col_names = [desc[0] for desc in cur.description]
+        if promotion and promotion.lower() != "all":
+            query += " AND p.promotion_label_raw = %s"
+            params.append(promotion)
 
-            for row in rows:
-                results.append(dict(zip(col_names, row)))
+        query += " ORDER BY p.start_date DESC LIMIT %s"
+        params.append(limit)
+        try:
+            with self.connection.cursor() as cur:
+                cur.execute(query, tuple(params))
 
-        return results
+                columns = [desc[0] for desc in cur.description]
+                results = [dict(zip(columns, row)) for row in cur.fetchall()]
+
+                return results
+
+        except Exception as e:
+            return []
 
     def close(self):
         if self.connection:
