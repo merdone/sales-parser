@@ -96,9 +96,11 @@ npm run preview
   * `src/components/` - Reusable React components
   * `src/hooks/` - Custom React hooks for cart and products management
 
-## 🎨 Frontend Features
+## 🎨 Frontend / UI
 
-The new React frontend includes:
+> 🤖 **Note on Frontend Development:**  The core focus and complexity of this project lie in the backend data pipeline — the asynchronous scraping algorithms, LLM-based data extraction, and database architecture. To provide a clean, interactive way to visualize the parsed promotions without shifting focus away from the backend, the React application was generated using AI tools. 
+
+The generated modern React frontend includes:
 - ✅ Responsive product grid with lazy loading
 - ✅ Category filtering with dropdown menu
 - ✅ Product sorting by price and name
@@ -107,4 +109,4 @@ The new React frontend includes:
 - ✅ Hot module reloading for development
 - ✅ Optimized production build with Vite
 
-See [frontend/README.md](frontend/README.md) for detailed frontend documentation.
+See [frontend/README.md](frontend/README.md) for detailed UI documentation.
