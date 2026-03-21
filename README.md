@@ -13,7 +13,7 @@ This project leverages **Selenium** for scraping dynamic web content, **OpenAI (
 ## 🛠️ Tech Stack
 * **Language:** Python >= 3.13
 * **Package Manager:** uv
-* **Web Scraping:** Selenium, Requests
+* **Web Scraping:** Playwright (Async)
 * **AI & Data Validation:** OpenAI API, Instructor, Pydantic
 * **Database:** PostgreSQL (psycopg2)
 * **API Framework:** FastAPI
@@ -31,7 +31,13 @@ Make sure you have `uv` installed. Then, sync the environment (this will automat
    uv sync
    ```
 
-3. **Set up Environment Variables:**
+3. **Install Playwright Browsers:**
+Since the project uses Playwright, you need to install the necessary browser binaries:
+    ```bash
+    uv run playwright install
+    ```
+
+4. **Set up Environment Variables:**
 Create a `.env` file in the root directory and add your credentials (do not commit this file to Git!):
     ```env
     # Database Configuration
@@ -44,9 +50,6 @@ Create a `.env` file in the root directory and add your credentials (do not comm
     # OpenAI API Key
     OPENAI_API_KEY=sk-your-secret-api-key
     ```
-
-4. **Webdriver:**
-Ensure you have Google Chrome installed. Selenium will automatically manage the ChromeDriver in newer versions, but make sure your browser is up to date.
 
 ## 💻 Usage
 
@@ -85,8 +88,8 @@ npm run preview
 ```
 
 ## 📂 Project Structure
-* `app/parsers/` - Scraping logic for specific stores (e.g., `biedronka_parser.py`).
-* `app/pipelines/` - Orchestration of scraping, AI processing, and database saving.
+* `app/parsers/` - Asynchronous scraping logic for specific stores (e.g., `biedronka_parser.py`).
+* `app/pipelines/` - Async orchestration of scraping, AI processing, and database saving.
 * `app/services/` - Utility functions and image processing logic.
 * `app/database.py` - Database connection and configuration.
 * `app/gpt.py` - AI integration using Instructor and OpenAI.
