@@ -1,10 +1,4 @@
-import requests
-from bs4 import BeautifulSoup
-import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from playwright.async_api import async_playwright
 
 from app.parsers.base_parser import BaseParser
 
@@ -12,108 +6,86 @@ class BiedronkaParser(BaseParser):
     def get_basic_url(self):
         return "https://www.biedronka.pl/pl/gazetki"
 
-    def get_all_flyers(self) -> list:
+    async def get_all_flyers(self) -> list:
         links = []
-        r = requests.get(self.get_basic_url(), headers={"User-Agent": "Mozilla/5.0"})
-        soup = BeautifulSoup(r.text, "html.parser")
-        for element in soup.find_all("div", {"class": "slot"}):
-            link = element.find("a", {"class": "page-slot-columns"}).get("href")
-            if all(word not in link for word in ("home", "zakupy", "piwniczka", "book", "strona-gazetki")):
-                links.append(link)
+        forbidden_words = ("home", "zakupy", "piwniczka", "book", "strona-gazetki", "glovo")
+
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch()
+            context = await browser.new_context(viewport={"width": 1920, "height": 1080})
+            page = await context.new_page()
+
+            await page.goto(self.get_basic_url())
+
+            await page.wait_for_selector("div.slot a.page-slot-columns")
+
+            all_link_elements = await page.locator("div.slot a.page-slot-columns").all()
+
+            for element in all_link_elements:
+                link = await element.get_attribute("href")
+
+                if link and all(word not in link for word in forbidden_words):
+                    links.append(link)
+
+            await context.close()
+            await browser.close()
+
         return links
 
-    def get_pictures(self, url: str) -> list:
-        driver = webdriver.Firefox()
-        driver.get(url)
-        wait = WebDriverWait(driver, 20)
+    async def extract_real_urls(self, current_slide):
+        valid_urls = []
+        imgs = await current_slide.locator("img").all()
+        for img in imgs:
+            src = await img.get_attribute("src")
+            if src and not src.startswith("data:image"):
+                valid_urls.append(src)
+        return valid_urls
 
-        try:
-            cookie_btn = wait.until(
-                EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
-            )
-            cookie_btn.click()
-        except Exception:
-            pass
-
-        host = wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#gallery-leaflet"))
-        )
-
-        shadow_root = wait.until(
-            lambda d: d.execute_script("return arguments[0].shadowRoot", host)
-        )
-
-        slides_count = driver.execute_script(
-            "return arguments[0].querySelectorAll('div.embla__slide').length;",
-            shadow_root
-        )
-
-        next_btn = driver.execute_script(
-            """
-            const buttons = arguments[0].querySelectorAll(
-              'button.inline-flex.items-center.justify-center.gap-2.whitespace-nowrap.rounded-md.text-sm.font-medium.transition-colors'
-            );
-            return buttons[1] || buttons[buttons.length - 1] || null;
-            """,
-            shadow_root
-        )
-
+    async def get_pictures(self, url: str) -> list:
         pics = []
 
-        for i in range(slides_count):
-            imgs = driver.execute_script(
-                """
-                const root = arguments[0];
-                const idx = arguments[1];
-                const slides = root.querySelectorAll('div.embla__slide');
-                const slide = slides[idx];
-                if (!slide) return [];
-                // на одном слайде может быть 2 img (разворот)
-                return Array.from(slide.querySelectorAll('img')).map(img => ({
-                    src: img.getAttribute('src'),
-                    dataSrc: img.getAttribute('data-src'),
-                    srcset: img.getAttribute('srcset'),
-                }));
-                """,
-                shadow_root,
-                i
-            )
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch()
+            context = await browser.new_context(viewport={"width": 1920, "height": 1080})
+            page = await context.new_page()
 
-            need_retry = (not imgs) or all(
-                im["src"] and im["src"].startswith("data:image") for im in imgs
-            )
-            if need_retry:
-                driver.execute_script(
-                    "arguments[0].querySelectorAll('div.embla__slide')[arguments[1]].scrollIntoView({block: 'center'});",
-                    shadow_root,
-                    i
-                )
-                time.sleep(0.5)
-                imgs = driver.execute_script(
-                    """
-                    const root = arguments[0];
-                    const idx = arguments[1];
-                    const slides = root.querySelectorAll('div.embla__slide');
-                    const slide = slides[idx];
-                    if (!slide) return [];
-                    return Array.from(slide.querySelectorAll('img')).map(img => ({
-                        src: img.getAttribute('src'),
-                        dataSrc: img.getAttribute('data-src'),
-                        srcset: img.getAttribute('srcset'),
-                    }));
-                    """,
-                    shadow_root,
-                    i
-                )
+            await page.goto(url)
 
-            for im in imgs:
-                real_url = im["src"]
-                if real_url and not real_url.startswith("data:image"):
-                    pics.append(real_url)
+            try:
+                await page.locator("#onetrust-accept-btn-handler").click(timeout=2000)
+            except TimeoutError:
+                pass
 
-            if i < slides_count - 1 and next_btn:
-                driver.execute_script("arguments[0].click();", next_btn)
-                time.sleep(0.4)
+            gallery = page.locator("#gallery-leaflet")
+            slides = gallery.locator("div.embla__slide")
 
-        driver.quit()
+            await slides.first.wait_for(state="attached")
+            slides_count = await slides.count()
+
+            nav_buttons = gallery.locator(
+                "button.inline-flex.items-center.justify-center.gap-2.whitespace-nowrap.rounded-md.text-sm.font-medium.transition-colors")
+
+
+            for i in range(slides_count):
+                slide = slides.nth(i)
+
+                urls = await self.extract_real_urls(slide)
+
+                if not urls:
+                    await slide.scroll_into_view_if_needed()
+                    await page.wait_for_timeout(500)
+                    urls = await self.extract_real_urls(slide)
+
+                pics.extend(urls)
+
+                if i < slides_count - 1:
+                    btn_count = await nav_buttons.count()
+                    if btn_count > 0:
+                        next_btn = nav_buttons.nth(1) if btn_count > 1 else nav_buttons.last
+                        await next_btn.click(force=True)
+                        await page.wait_for_timeout(400)
+
+            await context.close()
+            await browser.close()
+
         return pics

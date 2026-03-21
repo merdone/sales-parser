@@ -4,11 +4,11 @@ import requests
 
 class BaseParser(ABC):
     @abstractmethod
-    def get_all_flyers(self) -> list:
+    async def get_all_flyers(self) -> list:
         pass
 
     @abstractmethod
-    def get_pictures(self, url: str) -> list:
+    async def get_pictures(self, url: str) -> list:
         pass
 
     @abstractmethod
@@ -22,8 +22,8 @@ class BaseParser(ABC):
         with open(save_path, "wb") as f:
             f.write(resp.content)
 
-    def download_flyer(self, flyer_link: str, output_dir: Path) -> list[Path]:
-        list_of_pictures = self.get_pictures(flyer_link)
+    async def download_flyer(self, flyer_link: str, output_dir: Path) -> list[Path]:
+        list_of_pictures = await self.get_pictures(flyer_link)
         saved_files = []
         for idx, img_url in enumerate(list_of_pictures):
             filename = f"{idx:03d}.png"
