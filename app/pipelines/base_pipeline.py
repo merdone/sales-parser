@@ -87,10 +87,8 @@ class BasePipeline(ABC):
         parser = self._get_parser()
 
         dirs = setup_flyer_dirs(self._get_store_name(), link)
-
-        images_paths = parser.download_flyer(link, dirs["raw"])
+        images_paths = await parser.download_flyer(link, dirs["raw"])
         tasks = []
-
         for image_path in images_paths[:self.page_limit]:
             task = self._process_single_image(image_path)
             tasks.append(task)
@@ -117,6 +115,6 @@ class BasePipeline(ABC):
         jsons_paths = save_to_json(promotions_json, dirs["json"])
 
     async def run(self) -> None:
-        links = self._get_parser().get_all_flyers()
+        links = await self._get_parser().get_all_flyers()
         for link in links[:self.link_limit]:
             await self.process_flyer(link)

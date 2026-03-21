@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from playwright.async_api import TimeoutError
 from playwright.async_api import async_playwright
 
@@ -68,13 +66,3 @@ class AuchanParser(BaseParser):
             await browser.close()
 
         return all_links
-
-    async def download_flyer(self, flyer_link: str, output_dir: Path) -> list[Path]:
-        list_of_pictures = await self.get_pictures(flyer_link)
-        saved_files = []
-        for idx, img_url in enumerate(list_of_pictures):
-            filename = f"{idx:03d}.png"
-            full_path = output_dir / filename
-            self.save_image(img_url, full_path)
-            saved_files.append(full_path)
-        return saved_files

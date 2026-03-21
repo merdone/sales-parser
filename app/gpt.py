@@ -52,7 +52,6 @@ class Extractor:
     async def get_json_from_image_async(self, image_base64: str, store_name: str) -> dict:
         prompt_filename = f"{store_name}_prompt"
         system_prompt = self._get_prompt_content(prompt_filename)
-
         response = await self.client.chat.completions.create(
             model=self.model_name,
             response_model=PromotionsList,
@@ -69,7 +68,6 @@ class Extractor:
                 },
             ],
         )
-
         return response.model_dump()
 
     @async_timer
