@@ -35,7 +35,7 @@ class BasePipeline(ABC):
                 result = await self.extractor.get_json_from_image_async(encode_image, self._get_store_name())
                 return result
         except Exception as e:
-            return None
+            print(e)
 
     async def save_flayer_pictures(self, link: str) -> list[Path]:
         parser = self._get_parser()
